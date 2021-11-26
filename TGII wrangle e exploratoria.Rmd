@@ -62,7 +62,7 @@ reviews_1 <- simp_reviews[simp_reviews$factored_score == 1,]
 ```{r wordcloud}
 
 ```
-teste
+teste 2
 
 
 
