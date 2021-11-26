@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(tidyr)
 library(stringr)
+library(tidytext)
+library(data.table)
 ```
 
 ```{r exportação dbs}
@@ -37,8 +39,12 @@ order_reviews$comp_comment <- str_replace_all(order_reviews$comp_comment, "[[:pu
 
 # TRETA
 #"tokeniza" os comentários compostos
-order_reviews$vect_comment <- str_split(order_reviews$comp_comment, " ")
-
+Tokens <- order_reviews[c(1,9)] %>%
+  unnest_tokens(output = "Palavras",
+                input = comp_comment,
+                token = "words") %>%
+  group_by(review_id) %>%
+  summarise(Frases = as.vector(Palavras))
 
 
 #simplifica o dataset
@@ -62,7 +68,6 @@ reviews_1 <- simp_reviews[simp_reviews$factored_score == 1,]
 ```{r wordcloud}
 
 ```
-teste 2
 
 
 
