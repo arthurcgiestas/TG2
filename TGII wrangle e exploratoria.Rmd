@@ -1,0 +1,68 @@
+---
+title: "TG2 - wrangling e análise exp"
+author: "Arthur Giestas"
+date: "23/11/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r bibliotecas}
+library(dplyr)
+library(tidyr)
+library(stringr)
+```
+
+```{r exportação dbs}
+order_reviews_full <- read.csv("C:\\Users\\arthu\\Desktop\\Arthur\\UFMG\\2021.2\\TGII\\olist_order_reviews_dataset.csv", encoding = "UTF-8")
+```
+
+```{r wrangling}
+#remove linhas sem comentários E sem título
+order_reviews <- order_reviews_full[!((order_reviews_full$review_comment_message == "") & (order_reviews_full$review_comment_title == "")),]
+
+#inclui nota como fator
+order_reviews$factored_score <- as.factor(order_reviews$review_score)
+
+#concatena o título ao corpo do comentário
+order_reviews$comp_comment <- str_c(order_reviews$review_comment_title, " ", order_reviews$review_comment_message)
+
+#remove pontuação e palavras desnecessárias/neutras
+neutrals <- c()
+
+order_reviews$comp_comment <- str_replace_all(order_reviews$comp_comment, "[[:punct:]]", " ")
+
+
+# TRETA
+#"tokeniza" os comentários compostos
+order_reviews$vect_comment <- str_split(order_reviews$comp_comment, " ")
+
+
+
+#simplifica o dataset
+simp_reviews <- order_reviews[,c(1,9,8)]
+simp_reviews$comp_comment <- 
+
+for (i in length(simp_reviews)) {
+  
+}
+simp_reviews$comp_comment <- simp_reviews$comp_comment[simp_reviews$comp_comment != ""]
+
+#separa em subsets por nota
+reviews_5 <- simp_reviews[simp_reviews$factored_score == 5,]
+reviews_4 <- simp_reviews[simp_reviews$factored_score == 4,]
+reviews_3 <- simp_reviews[simp_reviews$factored_score == 3,]
+reviews_2 <- simp_reviews[simp_reviews$factored_score == 2,]
+reviews_1 <- simp_reviews[simp_reviews$factored_score == 1,]
+
+```
+
+```{r wordcloud}
+
+```
+
+
+
+
