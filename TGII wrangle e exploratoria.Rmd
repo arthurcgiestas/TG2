@@ -22,52 +22,60 @@ order_reviews_full <- read.csv("C:\\Users\\arthu\\Desktop\\Arthur\\UFMG\\2021.2\
 ```
 
 ```{r wrangling}
-#remove linhas sem comentários E sem título
-order_reviews <- order_reviews_full[!((order_reviews_full$review_comment_message == "") & (order_reviews_full$review_comment_title == "")),]
+#remove linhas sem comentários E sem título, remove colunas desnecessárias, acrescenta colunas com notas as.factor e com título concatenado ao texto do comentário
+order_reviews <- order_reviews_full[!((order_reviews_full$review_comment_message == "") &
+                                        (order_reviews_full$review_comment_title == "")),] %>%
+  subset(data = order_reviews, select = c(-order_id,
+                    -review_creation_date,
+                    -review_answer_timestamp)) %>%
+  mutate(factored_score = as.factor(review_score)) %>%
+  mutate(comp_comment = str_c(review_comment_title, " ", review_comment_message))
 
-#inclui nota como fator
-order_reviews$factored_score <- as.factor(order_reviews$review_score)
-
-#concatena o título ao corpo do comentário
-order_reviews$comp_comment <- str_c(order_reviews$review_comment_title, " ", order_reviews$review_comment_message)
-
-#remove pontuação e palavras desnecessárias/neutras
-neutrals <- c()
-
+#remove pontuação e números
 order_reviews$comp_comment <- str_replace_all(order_reviews$comp_comment, "[[:punct:]]", " ")
-
+order_reviews$comp_comment <- gsub('[0-9]+', '', order_reviews$comp_comment)
 
 # TRETA
 #"tokeniza" os comentários compostos
-Tokens <- order_reviews[c(1,9)] %>%
-  unnest_tokens(output = "Palavras",
-                input = comp_comment,
-                token = "words") %>%
-  group_by(review_id) %>%
-  summarise(Frases = as.vector(Palavras))
+#Tokens <- order_reviews[c(1,9)] %>%
+#  unnest_tokens(output = "Palavras",
+#                input = comp_comment,
+#                token = "words") #%>%
+#  group_by(review_id) %>%
+#  summarise(Frases = as.vector(Palavras))
 
 
-#simplifica o dataset
-simp_reviews <- order_reviews[,c(1,9,8)]
-simp_reviews$comp_comment <- 
+```
 
-for (i in length(simp_reviews)) {
-  
-}
-simp_reviews$comp_comment <- simp_reviews$comp_comment[simp_reviews$comp_comment != ""]
-
+```{r wordcloud}
 #separa em subsets por nota
 reviews_5 <- simp_reviews[simp_reviews$factored_score == 5,]
 reviews_4 <- simp_reviews[simp_reviews$factored_score == 4,]
 reviews_3 <- simp_reviews[simp_reviews$factored_score == 3,]
 reviews_2 <- simp_reviews[simp_reviews$factored_score == 2,]
 reviews_1 <- simp_reviews[simp_reviews$factored_score == 1,]
-
 ```
 
-```{r wordcloud}
+```{r estimativa de pontuacao por palavra}
+# cria função de moda
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
 
+# tokeniza num dataset de palavras, média, mediana, moda, var e dev pad
+word_evaluation <- order_reviews[,c(6,2)] %>%
+  unnest_tokens(output = "Palavras",
+                input = comp_comment,
+                token = "words") %>%
+  group_by(Palavras) %>%
+  summarise(avg_pt = mean(review_score),
+            median_pt = median(review_score),
+            mode_pt = as.double(getmode(review_score)),
+            var_pt = var(review_score),
+            dev_pt = sd(review_score)) %>%
+  na.omit() %>%
+  filter(var_pt <= 2 & var_pt != 0)
 ```
-
 
 
