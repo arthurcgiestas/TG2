@@ -37,13 +37,14 @@ order_reviews$comp_comment <- gsub('[0-9]+', '', order_reviews$comp_comment)
 
 # TRETA
 #"tokeniza" os comentários compostos
-#Tokens <- order_reviews[c(1,9)] %>%
-#  unnest_tokens(output = "Palavras",
-#                input = comp_comment,
-#                token = "words") #%>%
-#  group_by(review_id) %>%
-#  summarise(Frases = as.vector(Palavras))
+Tokens <- subset(order_reviews[c(1,6)] %>%
+  unnest_tokens(output = "Palavras",
+                input = comp_comment,
+                token = "words") %>%
+  group_by(review_id) %>%
+  summarise(Palavras = paste(Palavras, collapse = ", ")))
 
+Tokens$Palavras <- strsplit(Tokens$Palavras, ", ")
 
 ```
 
