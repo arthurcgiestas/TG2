@@ -9,7 +9,7 @@ output: word_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r bibliotecas}
+```{r bibliotecas, warning=FALSE}
 library(dplyr)
 library(tidyr)
 library(stringr)
@@ -17,8 +17,8 @@ library(tidytext)
 library(data.table)
 ```
 
-```{r exportação dbs}
-order_reviews_full <- read.csv("C:\\Users\\arthu\\Desktop\\Arthur\\UFMG\\2021.2\\TGII\\olist_order_reviews_dataset.csv", encoding = "UTF-8")
+```{r exportação ds}
+order_reviews_full <- read.csv("olist_order_reviews_dataset.csv", encoding = "UTF-8")
 ```
 
 ```{r wrangling}
@@ -63,7 +63,11 @@ getmode <- function(v) {
    uniqv[which.max(tabulate(match(v, uniqv)))]
 }
 
-# tokeniza num dataset de palavras, média, mediana, moda, var e dev pad
+# Tokeniza num dataset de palavras, média, mediana, moda, var e dev pad.
+# O dataset não possui observações com var = NA ou 0 ou <= 2.
+# Ou seja, não possui palavras que apareçam apenas uma vez ou que apareçam
+# tanto em comentários com notas altas como baixas, pois não contribuem
+# para a determinação da nota.
 word_evaluation <- order_reviews[,c(6,2)] %>%
   unnest_tokens(output = "Palavras",
                 input = comp_comment,
@@ -75,7 +79,7 @@ word_evaluation <- order_reviews[,c(6,2)] %>%
             var_pt = var(review_score),
             dev_pt = sd(review_score)) %>%
   na.omit() %>%
-  filter(var_pt <= 2 & var_pt != 0)
+  filter(var_pt <= 2 & var_pt != 0) #revisar essa decisão de var <= 2 (foi arbitrário)
 ```
 
 
