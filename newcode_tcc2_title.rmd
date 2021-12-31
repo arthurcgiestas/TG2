@@ -1,0 +1,87 @@
+---
+  title: "e-Commerce: analise de sentimentos"
+author: "Caio Henrique - 2019026028 & Arthur Giestas - 2019026028"
+output: word_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r bibliotecas, warning=FALSE, include=FALSE}
+# limpando a memoria
+rm(list = ls()) 
+
+# carregando bibliotecas
+library(tidyverse)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(wordcloud2)
+library(ggplot2)
+```
+
+```{r read data, warning=FALSE}
+order_reviews_full <- read.csv("C:/Users/Usuario/Desktop/tcc_2/olist_order_reviews_dataset_year.csv", encoding="UTF-8")
+# head(order_reviews_full)
+
+# selecao do dataframe necessario 
+df <- order_reviews_full %>%
+                        filter(review_year == 2018) %>%
+                        select("review_score", "review_comment_title", "review_comment_message")
+# view(df)
+str(df)
+```
+
+```{r build corpus, warning=FALSE, include=FALSE}
+# corpus eh uma colecao de documentos, cada cometario eh um documento
+corpus = VCorpus(VectorSource(df$review_comment_title))
+as.character(corpus[[52]])
+# inspect(corpus[8:10])
+```
+
+```{r data wrangling warning=FALSE}
+# passando o texto para minusculo e removendo numeros, pontuacao, stopwords etc
+# para a mensagem
+corpus = tm_map(corpus, content_transformer(tolower))
+# as.character(corpus[[80]])
+corpus = tm_map(corpus, removeNumbers)
+# as.character(corpus[[80]])
+corpus = tm_map(corpus, removePunctuation)
+#as.character(corpus[[80]])
+
+cleanset <- tm_map(corpus, removeWords, stopwords("portuguese"))
+inspect(cleanset[1:5])
+
+cleanset <- tm_map(cleanset, stemDocument)
+# as.character(cleanset[[80]])
+cleanset = tm_map(cleanset, stripWhitespace)
+as.character(cleanset[[80]])
+```
+
+```{r term document matix TDM, warning=FALSE, include=FALSE}
+# Term Document Matrix
+tdm <- TermDocumentMatrix(cleanset)
+# tdm <- removeSparseTerms(cleanset, 1)
+# tdm
+tdm <- as.matrix(tdm)
+# tdm[1:10,1:20]
+```
+
+```{r bar plot}
+bar <- rowSums(tdm)
+# bar
+bar <- subset(bar, bar >= 50)
+barplot(bar,
+        las = 2,
+        col = rainbow(50))
+
+# IMPORTANTE!!!!! Lembrar de ajustar palavras: boa/bom, entrega/entregue, otima/ótima/ótimo
+
+```
+
+
+
+
+
+

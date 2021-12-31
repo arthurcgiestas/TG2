@@ -15,6 +15,10 @@ library(tidyr)
 library(stringr)
 library(tidytext)
 library(data.table)
+library(wordcloud)
+library(tm)
+library(SnowballC)
+library(Rcpp)
 ```
 
 ```{r exportação ds}
@@ -37,25 +41,148 @@ order_reviews$comp_comment <- gsub('[0-9]+', '', order_reviews$comp_comment)
 
 # TRETA
 #"tokeniza" os comentários compostos
-Tokens <- subset(order_reviews[c(1,6)] %>%
-  unnest_tokens(output = "Palavras",
-                input = comp_comment,
-                token = "words") %>%
-  group_by(review_id) %>%
-  summarise(Palavras = paste(Palavras, collapse = ", ")))
-
-Tokens$Palavras <- strsplit(Tokens$Palavras, ", ")
+#Tokens <- subset(order_reviews[c(1,6)] %>%
+#  unnest_tokens(output = "Palavras",
+#                input = comp_comment,
+#                token = "words") %>%
+#  group_by(review_id) %>%
+#  summarise(Palavras = paste(Palavras, collapse = ", ")))
+#
+#Tokens$Palavras <- strsplit(Tokens$Palavras, ", ")
 
 ```
+
+```{r limpeza de palavras}
+wc_db_clean <- order_reviews[,c(2, 6)]
+
+wc_db_clean[,2] <- gsub("nao", "não", wc_db_clean[,2])
+
+wc_db_clean[,2] <- gsub("exelente", "excelente", wc_db_clean[,2])
+
+wc_db_clean[,2] <- gsub("otima", "ótima", wc_db_clean[,2])
+
+wc_db_clean[,2] <- gsub("produtos", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("produtos ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" produtos", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("produto", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("produto ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" produto", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("condições","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("casa","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("preciso","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("feita","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("anunciado","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("stark","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("sendo","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("unidades","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("entregar", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("entrega", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("prevista", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("mercadoria","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("todos", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("agora", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("frete", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("sempre","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("aguardo", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("relógio", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("meu", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("fiz", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("vez","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("lannister", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("site", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub('"', "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("material", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("capa", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("nenhum", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("nunca", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("pra", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("vendedor", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("data", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("além", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("compro", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("quero", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("veio","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("lojas", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("loja", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("outros", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("outro", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("porém", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("baratheon","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("espero", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("comprar", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("compras", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("compra", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("pouco", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("fiz","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("outras", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("outra", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("pareceu", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("parecer", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("parece", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("fácil", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" vendedor", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("vendedor ","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("todos", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("todo", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("deu", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("não", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("nada", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("valor","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("mochila", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("previsto", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("cortina", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("empresa","", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("nenhum", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("outras", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("combinado", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("antes ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" antes", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("cor", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" com", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("com ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("mas", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("pra ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" pra", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("até ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" até", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("ser ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" ser", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" só", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("só ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" foi", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("foi ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("estou", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("cliente", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("semana", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("ª", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("aa", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("aaa", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("aberturas", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("aberta", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("abraços", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("abraço", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("abra", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("abrindo", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" abs", "", wc_db_clean[,2])
+```
+
 
 ```{r wordcloud}
-#separa em subsets por nota
-reviews_5 <- simp_reviews[simp_reviews$factored_score == 5,]
-reviews_4 <- simp_reviews[simp_reviews$factored_score == 4,]
-reviews_3 <- simp_reviews[simp_reviews$factored_score == 3,]
-reviews_2 <- simp_reviews[simp_reviews$factored_score == 2,]
-reviews_1 <- simp_reviews[simp_reviews$factored_score == 1,]
+corpus_wc_clean <- Corpus(VectorSource((wc_db_clean %>%
+                                          filter(review_score == 5))[ ,2])) %>%
+  tm_map(removeWords, stopwords("portuguese"))
+
+tdm <- TermDocumentMatrix(corpus_wc_clean)
+m <- as.matrix(tdm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=100, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
 ```
+
 
 ```{r estimativa de pontuacao por palavra}
 # cria função de moda
@@ -69,7 +196,7 @@ getmode <- function(v) {
 # Ou seja, não possui palavras que apareçam apenas uma vez ou que apareçam
 # tanto em comentários com notas altas como baixas, pois não contribuem
 # para a determinação da nota.
-word_evaluation <- order_reviews[,c(6,2)] %>%
+word_evaluation <- wc_db_clean %>%
   unnest_tokens(output = "Palavras",
                 input = comp_comment,
                 token = "words") %>%
@@ -81,7 +208,6 @@ word_evaluation <- order_reviews[,c(6,2)] %>%
             dev_pt = sd(review_score)) %>%
   na.omit() %>%
   filter(var_pt <= 2 & var_pt != 0) #revisar essa decisão de var <= 2 (foi arbitrário)
- #revisar essa decisão de var <= 2 (foi arbitrário)
 
 # pode-se criar um modelo no final que definiria a nota com base nas palavras
 # nota entre 1 e 5 ou entre faixas (de 1 a 2, ou <2,5, >2,5, bom ou ruim) - transformar em classificação
