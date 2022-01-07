@@ -5,10 +5,6 @@ date: "23/11/2021"
 output: word_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ```{r bibliotecas, warning=FALSE}
 library(dplyr)
 library(tidyr)
@@ -26,45 +22,27 @@ order_reviews_full <- read.csv("olist_order_reviews_dataset.csv", encoding = "UT
 ```
 
 ```{r wrangling}
-#remove linhas sem comentários E sem título, remove colunas desnecessárias, acrescenta colunas com notas as.factor e com título concatenado ao texto do comentário
+#remove linhas sem comentários E sem título, remove colunas desnecessárias, acrescenta coluna com título concatenado ao texto do comentário
 order_reviews <- order_reviews_full[!((order_reviews_full$review_comment_message == "") &
                                         (order_reviews_full$review_comment_title == "")),] %>%
   subset(data = order_reviews, select = c(-order_id,
                     -review_creation_date,
-                    -review_answer_timestamp)) %>%
-  mutate(factored_score = as.factor(review_score)) %>%
+                    -review_answer_timestamp,
+                    -review_id)) %>%
   mutate(comp_comment = str_c(review_comment_title, " ", review_comment_message))
-
-#remove pontuação e números
-order_reviews$comp_comment <- str_replace_all(order_reviews$comp_comment, "[[:punct:]]", " ")
-order_reviews$comp_comment <- gsub('[0-9]+', '', order_reviews$comp_comment)
-
-# TRETA
-#"tokeniza" os comentários compostos
-#Tokens <- subset(order_reviews[c(1,6)] %>%
-#  unnest_tokens(output = "Palavras",
-#                input = comp_comment,
-#                token = "words") %>%
-#  group_by(review_id) %>%
-#  summarise(Palavras = paste(Palavras, collapse = ", ")))
-#
-#Tokens$Palavras <- strsplit(Tokens$Palavras, ", ")
-
 ```
 
 ```{r limpeza de palavras}
-wc_db_clean <- order_reviews[,c(2, 6)]
+wc_db_clean <- order_reviews[,c(1, 4)]
 
+wc_db_clean[,2] <- str_replace_all(wc_db_clean[,2], "[[:punct:]]", " ")
+
+wc_db_clean[,2] <- gsub('[0-9]+', '', wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" nao ", " não ", wc_db_clean[,2])
-
 wc_db_clean[,2] <- gsub("exelente", "excelente", wc_db_clean[,2])
-
 wc_db_clean[,2] <- gsub("otima", "ótima", wc_db_clean[,2])
-
 wc_db_clean[,2] <- gsub("otimo", "ótimo", wc_db_clean[,2])
-
 wc_db_clean[,2] <- gsub("ótima", "ótimo", wc_db_clean[,2])
-
 wc_db_clean[,2] <- gsub("rápida", "rápido", wc_db_clean[,2])
 
 wc_db_clean[,2] <- gsub("produtos", "", wc_db_clean[,2])
