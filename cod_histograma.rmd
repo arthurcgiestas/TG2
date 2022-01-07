@@ -1,0 +1,42 @@
+---
+title: "e-Commerce: analise de sentimentos"
+author: "Caio Henrique - 2019026028 & Arthur Giestas - 2019026028"
+output: word_document
+---
+
+```{r bibliotecas, warning=FALSE, include=FALSE}
+# limpando a memoria
+rm(list = ls()) 
+
+# carregando bibliotecas
+library(tidyverse)
+library(SnowballC)
+library(wordcloud)
+library(stringr)
+library(ggplot2)
+
+```
+
+```{r read data, warning=FALSE}
+order_reviews_full <- read.csv("C:/Users/Usuario/Desktop/tcc_2/olist_order_reviews_dataset_year.csv", encoding="UTF-8")
+
+df <- order_reviews_full %>%
+                        filter(review_year == 2017) %>%
+                        select("review_score", "review_comment_title", "review_comment_message") %>%
+                        mutate(index = row_number())
+```
+
+```{r histogram, warning=FALSE}
+
+score <- df$review_score
+h <- hist(score, 
+          breaks=c(0,1,2,3,4,5),
+          main = "Histogramas de Notas",
+          xlab = "Notas de 1 a 5",
+          xaxt='n',
+          col = "cornflowerblue",
+          border = "black")
+text(h$mids,h$counts,labels=h$counts, adj=c(0.5, -0.5))
+h$density
+
+```
