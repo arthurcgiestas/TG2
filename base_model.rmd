@@ -1,0 +1,79 @@
+---
+title: "e-Commerce: analise de sentimentos"
+author: "Caio Henrique - 2019026028 & Arthur Giestas - 2019026028"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r bibliotecas, warning=FALSE}
+
+library(tidyverse)
+library(stringr)
+# library(data.table)
+library(wordcloud)
+# library(tm)
+library(SnowballC)
+library(Rcpp)
+
+```
+
+```{r read data, warning=FALSE}
+order_reviews_full <- read.csv("C:/Users/Usuario/Desktop/tcc_2/olist_order_reviews_dataset_year.csv", encoding="UTF-8")
+# head(order_reviews_full)
+
+# selecao do dataframe necessario 
+df <- order_reviews_full %>%
+  filter(review_year == 2017 & review_comment_message != "") %>%
+  
+  select("review_score", "review_comment_message") %>%
+  
+  mutate(index = row_number()) 
+  
+# slice(1:1200)
+
+ df$index <- seq.int(nrow(df))
+
+# view(df)
+
+str(df$review_comment_message)
+
+for (i in 1:1200) {
+  
+  #CRIACAO DA VARIAVEL RESPOSTA (Y)
+  df$Y5[i] <- if_else(df$review_score[i] == 5, 1, 0)
+  df$Y4[i] <- if_else(df$review_score[i] == 4, 1, 0)
+  df$Y3[i] <- if_else(df$review_score[i] == 3, 0, 0)
+  df$Y2[i] <- if_else(df$review_score[i] == 2, 0, 0)
+  df$Y1[i] <- if_else(df$review_score[i] == 1, 0, 0)
+  
+  df$Y[i] <- df$Y5[i] + df$Y4[i] + df$Y3[i] + df$Y2[i] + df$Y1[i]
+  
+  #CRIACAO DAS VARIAVEIS DEUMMIES
+  df$X_recomendo[i] <- ifelse(str_detect(df$review_comment_message[i], "recomendo"), 1, 0)
+  df$X_antes[i] <- ifelse(str_detect(df$review_comment_message[i], "antes"), 1, 0)
+  df$X_otimo[i] <- ifelse(str_detect(df$review_comment_message[i], "ótimo"), 1, 0)
+  df$X_chegou[i] <- ifelse(str_detect(df$review_comment_message[i], "chegou"), 1, 0)
+  df$X_adorei[i] <- ifelse(str_detect(df$review_comment_message[i], "adorei"), 1, 0)
+  df$X_super[i] <- ifelse(str_detect(df$review_comment_message[i], "super"), 1, 0)
+  df$X_qualidade[i] <- ifelse(str_detect(df$review_comment_message[i], "qualidade"), 1, 0)
+  df$X_perfeito[i] <- ifelse(str_detect(df$review_comment_message[i], "perfeito"), 1, 0)
+  df$X_prazo[i] <- ifelse(str_detect(df$review_comment_message[i], "prazo"), 1, 0)
+  df$X_excelente[i] <- ifelse(str_detect(df$review_comment_message[i], "excelente"), 1, 0)
+  df$X_recebi[i] <- ifelse(str_detect(df$review_comment_message[i], "recebi"), 1, 0)
+  df$X_rapido[i] <- ifelse(str_detect(df$review_comment_message[i], "rápido"), 1, 0)
+  df$X_gostei[i] <- ifelse(str_detect(df$review_comment_message[i], "gostei"), 1, 0)
+  df$X_entrega[i] <- ifelse(str_detect(df$review_comment_message[i], "entrega"), 1, 0)
+  df$X_bom[i] <- ifelse(str_detect(df$review_comment_message[i], "bom"), 1, 0)
+  df$X_bem[i] <- ifelse(str_detect(df$review_comment_message[i], "bem"), 1, 0)
+  df$X_boa[i] <- ifelse(str_detect(df$review_comment_message[i], "boa"), 1, 0)
+  df$X_muito[i] <- ifelse(str_detect(df$review_comment_message[i], "muito"), 1, 0)
+  df$X_sempre[i] <- ifelse(str_detect(df$review_comment_message[i], "sempre"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "parabéns"), 1, 0)
+
+}
+
+
+```
