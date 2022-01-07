@@ -49,7 +49,8 @@ wc_db_clean[,2] <- gsub("produtos", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("Produto", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" produto", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("produto ", "", wc_db_clean[,2])
-wc_db_clean[,2] <- gsub(" prazo ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" prazos", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" prazo", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" loja ", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" entregue ", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" tudo", "", wc_db_clean[,2])
@@ -59,18 +60,26 @@ wc_db_clean[,2] <- gsub(" comprar", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" compra", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("veio", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("dentro", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("chegou", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("entrega ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("recebi ", "", wc_db_clean[,2])
+
+wc_db_clean[,2] <- gsub("lannister", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub("comprei", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" dia ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" dois", "", wc_db_clean[,2])
 ```
 
 
-```{r wordcloud}
-corpus_wc_clean <- Corpus(VectorSource((wc_db_clean %>%
-                                          filter(review_score == 5))[ ,2])) %>%
+```{r wordcloud BOM}
+corpus_wc_bom <- Corpus(VectorSource((wc_db_clean %>%
+                                          filter(review_score > 3))[ ,2])) %>%
   tm_map(removeWords, stopwords("portuguese")) %>%
   tm_map(removePunctuation) %>%
   tm_map(removeNumbers) %>%
   tm_map(content_transformer(tolower))
 
-tdm <- TermDocumentMatrix(corpus_wc_clean)
+tdm <- TermDocumentMatrix(corpus_wc_bom)
 m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
 d <- data.frame(word = names(v),freq=v)
@@ -81,6 +90,125 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 1,
           colors=brewer.pal(8, "Dark2"))
 ```
 
+```{r dummy variables BOM}
+df <- order_reviews_full[!((order_reviews_full$review_comment_message == "") & 
+                             (order_reviews_full$review_comment_title == "")),] %>%
+  mutate(comp_comment = str_c(review_comment_title, " ", review_comment_message))%>%
+  select("review_score", "review_comment_message") %>%
+  mutate(index = row_number())
+
+df$index <- seq.int(nrow(df))
+
+str(df$review_comment_message)
+
+
+for (i in 1:1200) {
+  
+  #CRIACAO DA VARIAVEL RESPOSTA (Y)
+  df$Y5[i] <- if_else(df$review_score[i] == 5, 1, 0)
+  df$Y4[i] <- if_else(df$review_score[i] == 4, 1, 0)
+  df$Y3[i] <- if_else(df$review_score[i] == 3, 0, 0)
+  df$Y2[i] <- if_else(df$review_score[i] == 2, 0, 0)
+  df$Y1[i] <- if_else(df$review_score[i] == 1, 0, 0)
+  
+  df$Y[i] <- df$Y5[i] + df$Y4[i] + df$Y3[i] + df$Y2[i] + df$Y1[i]
+  
+  #CRIACAO DAS VARIAVEIS DEUMMIES
+  df$X_recomendo[i] <- ifelse(str_detect(df$review_comment_message[i], "recomendo"), 1, 0)
+  df$X_antes[i] <- ifelse(str_detect(df$review_comment_message[i], "antes"), 1, 0)
+  df$X_otimo[i] <- ifelse(str_detect(df$review_comment_message[i], "ótimo"), 1, 0)
+  df$X_chegou[i] <- ifelse(str_detect(df$review_comment_message[i], "chegou"), 1, 0)
+  df$X_adorei[i] <- ifelse(str_detect(df$review_comment_message[i], "adorei"), 1, 0)
+  df$X_super[i] <- ifelse(str_detect(df$review_comment_message[i], "super"), 1, 0)
+  df$X_qualidade[i] <- ifelse(str_detect(df$review_comment_message[i], "qualidade"), 1, 0)
+  df$X_perfeito[i] <- ifelse(str_detect(df$review_comment_message[i], "perfeito"), 1, 0)
+  df$X_prazo[i] <- ifelse(str_detect(df$review_comment_message[i], "certo"), 1, 0)
+  df$X_excelente[i] <- ifelse(str_detect(df$review_comment_message[i], "excelente"), 1, 0)
+  df$X_recebi[i] <- ifelse(str_detect(df$review_comment_message[i], "recebi"), 1, 0)
+  df$X_rapido[i] <- ifelse(str_detect(df$review_comment_message[i], "rápido"), 1, 0)
+  df$X_gostei[i] <- ifelse(str_detect(df$review_comment_message[i], "gostei"), 1, 0)
+  df$X_entrega[i] <- ifelse(str_detect(df$review_comment_message[i], "entrega"), 1, 0)
+  df$X_bom[i] <- ifelse(str_detect(df$review_comment_message[i], "bom"), 1, 0)
+  df$X_bem[i] <- ifelse(str_detect(df$review_comment_message[i], "bem"), 1, 0)
+  df$X_boa[i] <- ifelse(str_detect(df$review_comment_message[i], "boa"), 1, 0)
+  df$X_muito[i] <- ifelse(str_detect(df$review_comment_message[i], "muito"), 1, 0)
+  df$X_sempre[i] <- ifelse(str_detect(df$review_comment_message[i], "sempre"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "parabéns"), 1, 0)
+
+}
+```
+
+```{r wordcloud NAO BOM}
+corpus_wc_NBOM <- Corpus(VectorSource((wc_db_clean %>%
+                                          filter(review_score <= 3))[ ,2])) %>%
+  tm_map(removeWords, stopwords("portuguese")) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(content_transformer(tolower))
+
+tdm <- TermDocumentMatrix(corpus_wc_NBOM)
+m <- as.matrix(tdm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+
+set.seed(1234)
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=20, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+```{r dummy variables NAO BOM}
+df <- order_reviews_full %>%
+  mutate(comp_comment = str_c(review_comment_title, " ", review_comment_message))%>%
+  mutate(review_year = as.numeric(format(review_creation_date, "%Y")))%>%
+  filter(review_year == 2017 & comp_comment != "") %>%
+  
+  select("review_score", "review_comment_message") %>%
+  
+  mutate(index = row_number()) 
+
+df$index <- seq.int(nrow(df))
+
+# view(df)
+
+str(df$review_comment_message)
+
+
+for (i in 1:1200) {
+  
+  #CRIACAO DA VARIAVEL RESPOSTA (Y)
+  df$Y5[i] <- if_else(df$review_score[i] == 5, 0, 0)
+  df$Y4[i] <- if_else(df$review_score[i] == 4, 0, 0)
+  df$Y3[i] <- if_else(df$review_score[i] == 3, 1, 0)
+  df$Y2[i] <- if_else(df$review_score[i] == 2, 1, 0)
+  df$Y1[i] <- if_else(df$review_score[i] == 1, 1, 0)
+  
+  df$Y[i] <- df$Y5[i] + df$Y4[i] + df$Y3[i] + df$Y2[i] + df$Y1[i]
+  
+  #CRIACAO DAS VARIAVEIS DEUMMIES
+  df$X_recomendo[i] <- ifelse(str_detect(df$review_comment_message[i], "recomendo"), 1, 0)
+  df$X_antes[i] <- ifelse(str_detect(df$review_comment_message[i], "antes"), 1, 0)
+  df$X_otimo[i] <- ifelse(str_detect(df$review_comment_message[i], "ótimo"), 1, 0)
+  df$X_chegou[i] <- ifelse(str_detect(df$review_comment_message[i], "chegou"), 1, 0)
+  df$X_adorei[i] <- ifelse(str_detect(df$review_comment_message[i], "adorei"), 1, 0)
+  df$X_super[i] <- ifelse(str_detect(df$review_comment_message[i], "super"), 1, 0)
+  df$X_qualidade[i] <- ifelse(str_detect(df$review_comment_message[i], "qualidade"), 1, 0)
+  df$X_perfeito[i] <- ifelse(str_detect(df$review_comment_message[i], "perfeito"), 1, 0)
+  df$X_prazo[i] <- ifelse(str_detect(df$review_comment_message[i], "prazo"), 1, 0)
+  df$X_excelente[i] <- ifelse(str_detect(df$review_comment_message[i], "excelente"), 1, 0)
+  df$X_recebi[i] <- ifelse(str_detect(df$review_comment_message[i], "recebi"), 1, 0)
+  df$X_rapido[i] <- ifelse(str_detect(df$review_comment_message[i], "rápido"), 1, 0)
+  df$X_gostei[i] <- ifelse(str_detect(df$review_comment_message[i], "gostei"), 1, 0)
+  df$X_entrega[i] <- ifelse(str_detect(df$review_comment_message[i], "entrega"), 1, 0)
+  df$X_bom[i] <- ifelse(str_detect(df$review_comment_message[i], "bom"), 1, 0)
+  df$X_bem[i] <- ifelse(str_detect(df$review_comment_message[i], "bem"), 1, 0)
+  df$X_boa[i] <- ifelse(str_detect(df$review_comment_message[i], "boa"), 1, 0)
+  df$X_muito[i] <- ifelse(str_detect(df$review_comment_message[i], "muito"), 1, 0)
+  df$X_sempre[i] <- ifelse(str_detect(df$review_comment_message[i], "sempre"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "parabéns"), 1, 0)
+
+}
+```
 
 ```{r estimativa de pontuacao por palavra}
 # cria função de moda
