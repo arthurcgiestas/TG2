@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r bibliotecas, warning=FALSE}
+rm(list = ls()) 
 
 library(tidyverse)
 library(stringr)
@@ -23,6 +24,9 @@ library(Rcpp)
 ```{r read data, warning=FALSE}
 order_reviews_full <- read.csv("C:/Users/Usuario/Desktop/tcc_2/olist_order_reviews_dataset_year.csv", encoding="UTF-8")
 # head(order_reviews_full)
+```
+
+```{r data wrangling, warning=FALSE}
 
 # selecao do dataframe necessario 
 df <- order_reviews_full %>%
@@ -40,6 +44,65 @@ df <- order_reviews_full %>%
 
 str(df$review_comment_message)
 
+# substituicao de genero e plural
+df$review_comment_message <- gsub("ótimo", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("otima", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("ótima", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("perfeita", "perfeito", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rápido", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rápida", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rapida", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("bem", "bom", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("boa", "bom", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("produtos", "produto", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("não", "nao", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("dias", "dia", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("péssimo", "pessimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("péssima", "pessimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("pessima", "pessimo", df$review_comment_message, ignore.case = TRUE)
+
+
+# passando tudo para minusculo
+df$review_comment_message <- gsub("recomendo", "recomendo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("antes", "antes", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("ótimo", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("chegou", "chegou", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("adorei", "adorei", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("super", "super", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("qualidade", "qualidade", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("perfeito", "perfeito", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("prazo", "prazo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("excelente", "excelente", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("recebi", "recebi", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rapido", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("gostei", "gostei", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("entrega", "entrega", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("entregue", "entregue", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("bom", "bom", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("muito", "muito", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("sempre", "sempre", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("parabéns", "parabéns", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("dentro", "dentro", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("tudo", "tudo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("veio", "veio", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("produto", "produto", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("comprei", "comprei", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("compra", "compra", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("ainda", "ainda", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("nao", "nao", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("agora", "agora", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("dia", "dia", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("loja", "loja", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("site", "site", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("apenas", "apenas", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("contato", "contato", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("nada", "nada", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("péssimo", "péssimo", df$review_comment_message, ignore.case = TRUE)
+
+```
+
+```{r model df, warning=FALSE}
+
 for (i in 1:1200) {
   
   #CRIACAO DA VARIAVEL RESPOSTA (Y)
@@ -51,7 +114,7 @@ for (i in 1:1200) {
   
   df$Y[i] <- df$Y5[i] + df$Y4[i] + df$Y3[i] + df$Y2[i] + df$Y1[i]
   
-  #CRIACAO DAS VARIAVEIS DEUMMIES
+  #CRIACAO DAS VARIAVEIS DUMMIES
   df$X_recomendo[i] <- ifelse(str_detect(df$review_comment_message[i], "recomendo"), 1, 0)
   df$X_antes[i] <- ifelse(str_detect(df$review_comment_message[i], "antes"), 1, 0)
   df$X_otimo[i] <- ifelse(str_detect(df$review_comment_message[i], "ótimo"), 1, 0)
@@ -66,14 +129,34 @@ for (i in 1:1200) {
   df$X_rapido[i] <- ifelse(str_detect(df$review_comment_message[i], "rápido"), 1, 0)
   df$X_gostei[i] <- ifelse(str_detect(df$review_comment_message[i], "gostei"), 1, 0)
   df$X_entrega[i] <- ifelse(str_detect(df$review_comment_message[i], "entrega"), 1, 0)
+  df$X_entrega[i] <- ifelse(str_detect(df$review_comment_message[i], "entregue"), 1, 0)
   df$X_bom[i] <- ifelse(str_detect(df$review_comment_message[i], "bom"), 1, 0)
-  df$X_bem[i] <- ifelse(str_detect(df$review_comment_message[i], "bem"), 1, 0)
-  df$X_boa[i] <- ifelse(str_detect(df$review_comment_message[i], "boa"), 1, 0)
   df$X_muito[i] <- ifelse(str_detect(df$review_comment_message[i], "muito"), 1, 0)
   df$X_sempre[i] <- ifelse(str_detect(df$review_comment_message[i], "sempre"), 1, 0)
   df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "parabéns"), 1, 0)
-
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "dentro"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "tudo"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "veio"), 1, 0)
+  
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "produto"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "comprei"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "compra"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "ainda"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "nao"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "agora"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "dia"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "loja"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "site"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "apenas"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "contato"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "nada"), 1, 0)
+  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "péssimo"), 1, 0)
+  
 }
+
+
+df <- df %>% select(-c("Y5","Y4","Y3","Y2","Y1"))
+
 
 
 ```
