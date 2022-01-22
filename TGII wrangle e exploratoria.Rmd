@@ -45,6 +45,7 @@ wc_db_clean[,2] <- gsub("otimo", "ótimo", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("ótima", "ótimo", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("rápida", "rápido", wc_db_clean[,2])
 
+# Limpeza nuvem BOM
 wc_db_clean[,2] <- gsub("produtos", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("Produto", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" produto", "", wc_db_clean[,2])
@@ -64,6 +65,7 @@ wc_db_clean[,2] <- gsub("chegou", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("entrega ", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("recebi ", "", wc_db_clean[,2])
 
+# Limpeza nuvem NÃO BOM
 wc_db_clean[,2] <- gsub("lannister", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub("comprei", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" dia ", "", wc_db_clean[,2])
