@@ -73,9 +73,17 @@ wc_db_clean[,2] <- gsub(" pra ", "", wc_db_clean[,2])
 ```
 
 
+```{r criação index 70/30}
+index <- sample(1:nrow(wc_db_clean),
+       0.7*nrow(wc_db_clean))
+```
+
+
 ```{r wordcloud BOM}
-corpus_wc_bom <- Corpus(VectorSource((wc_db_clean %>%
-                                          filter(review_score > 3))[ ,2])) %>%
+wc_db_train <- wc_db_clean[index,] %>%
+  filter(review_score > 3)
+
+corpus_wc_bom <- Corpus(VectorSource(wc_db_train[,2])) %>%
   tm_map(removeWords, stopwords("portuguese")) %>%
   tm_map(removePunctuation) %>%
   tm_map(removeNumbers) %>%
@@ -141,14 +149,16 @@ for (i in 1:1200) {
 ```
 
 ```{r wordcloud NAO BOM}
-corpus_wc_NBOM <- Corpus(VectorSource((wc_db_clean %>%
-                                          filter(review_score <= 3))[ ,2])) %>%
+wc_db_train <- wc_db_clean[index,] %>%
+  filter(review_score <= 3)
+
+corpus_wc_nbom <- Corpus(VectorSource(wc_db_train[,2])) %>%
   tm_map(removeWords, stopwords("portuguese")) %>%
   tm_map(removePunctuation) %>%
   tm_map(removeNumbers) %>%
   tm_map(content_transformer(tolower))
 
-tdm <- TermDocumentMatrix(corpus_wc_NBOM)
+tdm <- TermDocumentMatrix(corpus_wc_nbom)
 m <- as.matrix(tdm)
 v <- sort(rowSums(m),decreasing=TRUE)
 d <- data.frame(word = names(v),freq=v)
@@ -160,51 +170,69 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 1,
 ```
 
 ```{r dummy variables NAO BOM}
-df <- order_reviews_full[!((order_reviews_full$review_comment_message == "") & 
-                             (order_reviews_full$review_comment_title == "")),] %>%
-  mutate(comp_comment = str_c(review_comment_title, " ", review_comment_message))%>%
-  select("review_score", "review_comment_message") %>%
-  mutate(index = row_number())
+db_test_nbom <- wc_db_clean[-index,]
 
-df$index <- seq.int(nrow(df))
-
-# view(df)
-
-str(df$review_comment_message)
+str(db_test_nbom$review_comment_message)
 
 
-for (i in 1:1200) {
+for (i in 1:nrow(db_test_nbom)) {
   
   #CRIACAO DA VARIAVEL RESPOSTA (Y)
-  df$Y5[i] <- if_else(df$review_score[i] == 5, 0, 0)
-  df$Y4[i] <- if_else(df$review_score[i] == 4, 0, 0)
-  df$Y3[i] <- if_else(df$review_score[i] == 3, 1, 0)
-  df$Y2[i] <- if_else(df$review_score[i] == 2, 1, 0)
-  df$Y1[i] <- if_else(df$review_score[i] == 1, 1, 0)
+  db_test_nbom$Y5[i] <- if_else(db_test_nbom$review_score[i] == 5, 0, 0)
+  db_test_nbom$Y4[i] <- if_else(db_test_nbom$review_score[i] == 4, 0, 0)
+  db_test_nbom$Y3[i] <- if_else(db_test_nbom$review_score[i] == 3, 1, 0)
+  db_test_nbom$Y2[i] <- if_else(db_test_nbom$review_score[i] == 2, 1, 0)
+  db_test_nbom$Y1[i] <- if_else(db_test_nbom$review_score[i] == 1, 1, 0)
   
-  df$Y[i] <- df$Y5[i] + df$Y4[i] + df$Y3[i] + df$Y2[i] + df$Y1[i]
+  db_test_nbom$Y[i] <- 
+    db_test_nbom$Y5[i] +
+    db_test_nbom$Y4[i] +
+    db_test_nbom$Y3[i] +
+    db_test_nbom$Y2[i] + 
+    
+    db_test_nbom$Y1[i]
   
   #CRIACAO DAS VARIAVEIS DEUMMIES
-  df$X_recomendo[i] <- ifelse(str_detect(df$review_comment_message[i], "recomendo"), 1, 0)
-  df$X_antes[i] <- ifelse(str_detect(df$review_comment_message[i], "porém"), 1, 0)
-  df$X_otimo[i] <- ifelse(str_detect(df$review_comment_message[i], "aguardando"), 1, 0)
-  df$X_chegou[i] <- ifelse(str_detect(df$review_comment_message[i], "quero"), 1, 0)
-  df$X_adorei[i] <- ifelse(str_detect(df$review_comment_message[i], "apenas"), 1, 0)
-  df$X_super[i] <- ifelse(str_detect(df$review_comment_message[i], "estou"), 1, 0)
-  df$X_qualidade[i] <- ifelse(str_detect(df$review_comment_message[i], "comprei"), 1, 0)
-  df$X_perfeito[i] <- ifelse(str_detect(df$review_comment_message[i], "bom"), 1, 0)
-  df$X_prazo[i] <- ifelse(str_detect(df$review_comment_message[i], "ainda"), 1, 0)
-  df$X_excelente[i] <- ifelse(str_detect(df$review_comment_message[i], "dias"), 1, 0)
-  df$X_recebi[i] <- ifelse(str_detect(df$review_comment_message[i], "não"), 1, 0)
-  df$X_rapido[i] <- ifelse(str_detect(df$review_comment_message[i], "outro"), 1, 0)
-  df$X_gostei[i] <- ifelse(str_detect(df$review_comment_message[i], "contato"), 1, 0)
-  df$X_entrega[i] <- ifelse(str_detect(df$review_comment_message[i], "pedido"), 1, 0)
-  df$X_bom[i] <- ifelse(str_detect(df$review_comment_message[i], "site"), 1, 0)
-  df$X_bem[i] <- ifelse(str_detect(df$review_comment_message[i], "nada"), 1, 0)
-  df$X_boa[i] <- ifelse(str_detect(df$review_comment_message[i], "recebi"), 1, 0)
-  df$X_muito[i] <- ifelse(str_detect(df$review_comment_message[i], "qualidade"), 1, 0)
-  df$X_sempre[i] <- ifelse(str_detect(df$review_comment_message[i], "correios"), 1, 0)
-  df$X_parabens[i] <- ifelse(str_detect(df$review_comment_message[i], "agora"), 1, 0)
+  db_test_nbom$X_recomendo[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "recomendo"), 1, 0)
+  db_test_nbom$X_antes[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "porém"), 1, 0)
+  db_test_nbom$X_otimo[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "aguardando"), 1, 0)
+  db_test_nbom$X_chegou[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "quero"), 1, 0)
+  db_test_nbom$X_adorei[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "apenas"), 1, 0)
+  db_test_nbom$X_super[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "estou"), 1, 0)
+  db_test_nbom$X_qualidade[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "comprei"), 1, 0)
+  db_test_nbom$X_perfeito[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "bom"), 1, 0)
+  db_test_nbom$X_prazo[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "ainda"), 1, 0)
+  db_test_nbom$X_excelente[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "dias"), 1, 0)
+  db_test_nbom$X_recebi[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "não"), 1, 0)
+  db_test_nbom$X_rapido[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "outro"), 1, 0)
+  db_test_nbom$X_gostei[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "contato"), 1, 0)
+  db_test_nbom$X_entrega[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "pedido"), 1, 0)
+  db_test_nbom$X_bom[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "site"), 1, 0)
+  db_test_nbom$X_bem[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "nada"), 1, 0)
+  db_test_nbom$X_boa[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "recebi"), 1, 0)
+  db_test_nbom$X_muito[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "qualidade"), 1, 0)
+  db_test_nbom$X_sempre[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "correios"), 1, 0)
+  db_test_nbom$X_parabens[i] <-
+    ifelse(str_detect(db_test_nbom$review_comment_message[i], "agora"), 1, 0)
 
 }
 ```
