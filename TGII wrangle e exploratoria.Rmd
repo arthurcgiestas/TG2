@@ -14,9 +14,11 @@ library(data.table)
 library(wordcloud)
 library(tm)
 library(SnowballC)
-library(Rcpp)
+#library(Rcpp)
 library(randomForest)
 library(xgboost)
+library(e1071)
+library(partykit)
 ```
 
 ```{r data reading}
@@ -177,6 +179,8 @@ db_train_bom <- db_dummy_bom[index, 8:28]
 db_test_bom <- db_dummy_bom[-index, 8:28]
 ```
 
+--------------------------------------------------------------------------------
+
 ```{r model log BOM}
 log_fit_bom <- glm(Y ~ .,
                    data = db_train_bom,
@@ -203,29 +207,28 @@ esp_log_bom <- ctable_log_bom[1,1] / sum(ctable_log_bom[,1])
 sen_log_bom <- ctable_log_bom[2,2] / sum(ctable_log_bom[,2])
 ```
 
-```{r model rpt BOM}
-rpt_fit_bom <- rpart(Y ~ .,
-                   data = db_train_bom,
-                   method = "class")
+```{r model ptk BOM}
+ptk_fit_bom <- ctree(Y ~ .,
+                   data = db_train_bom)
 
-# summary(rpt_fit_bom)
+# summary(ptk_fit_bom)
 
-db_test_rpt_bom <- db_test_bom
+db_test_ptk_bom <- db_test_bom
 
-db_test_rpt_bom$pred <- predict(rpt_fit_bom, newdata = db_test_rpt_bom)
-db_test_rpt_bom$pred.class <- ifelse(db_test_rpt_bom$pred > 0.5,1,0)
+db_test_ptk_bom$pred <- predict(ptk_fit_bom, newdata = db_test_ptk_bom)
+db_test_ptk_bom$pred.class <- ifelse(db_test_ptk_bom$pred > 0.5,1,0)
 
-# db_model_bom <- db_test_rpt_bom %>% select(c("Y","pred","pred.class"))
+# db_model_bom <- db_test_ptk_bom %>% select(c("Y","pred","pred.class"))
 # ^ NÃO ESTÁ SENDO USADO
 
 # MATRIZ DE CONFUSAO E METRICAS
-ctable_rpt_bom <- table(as.numeric(db_test_rpt_bom$pred.class), db_test_rpt_bom$Y)
+ctable_ptk_bom <- table(as.numeric(db_test_ptk_bom$pred.class), db_test_ptk_bom$Y)
 
-acc_rpt_bom <- sum(ctable_rpt_bom[1,1], ctable_rpt_bom[2,2]) / sum(ctable_rpt_bom)
+acc_ptk_bom <- sum(ctable_ptk_bom[1,1], ctable_ptk_bom[2,2]) / sum(ctable_ptk_bom)
 
-esp_rpt_bom <- ctable_rpt_bom[1,1] / sum(ctable_rpt_bom[,1])
+esp_ptk_bom <- ctable_ptk_bom[1,1] / sum(ctable_ptk_bom[,1])
 
-sen_rpt_bom <- ctable_rpt_bom[2,2] / sum(ctable_rpt_bom[,2])
+sen_ptk_bom <- ctable_ptk_bom[2,2] / sum(ctable_ptk_bom[,2])
 ```
 
 ```{r model rnf BOM}
@@ -278,6 +281,23 @@ acc_xgb_bom <- sum(ctable_xgb_bom[1,1], ctable_xgb_bom[2,2]) / sum(ctable_xgb_bo
 esp_xgb_bom <- ctable_xgb_bom[1,1] / sum(ctable_xgb_bom[,1])
 
 sen_xgb_bom <- ctable_xgb_bom[2,2] / sum(ctable_xgb_bom[,2])
+```
+
+```{r model nba BOM}
+nba_fit_bom <- naiveBayes(Y ~ ., data = db_train_bom)
+
+db_test_nba_bom <- db_test_bom
+
+db_test_nba_bom$pred <- predict(nba_fit_bom, newdata = db_test_nba_bom)
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_nba_bom <- table(db_test_nba_bom$pred, db_test_nba_bom$Y)
+
+acc_nba_bom <- sum(ctable_nba_bom[1,1], ctable_nba_bom[2,2]) / sum(ctable_nba_bom)
+
+esp_nba_bom <- ctable_nba_bom[1,1] / sum(ctable_nba_bom[,1])
+
+sen_nba_bom <- ctable_nba_bom[2,2] / sum(ctable_nba_bom[,2])
 ```
 
 
@@ -399,6 +419,30 @@ esp_log_nbom <- ctable_log_nbom[1,1] / sum(ctable_log_nbom[,1])
 sen_log_nbom <- ctable_log_nbom[2,2] / sum(ctable_log_nbom[,2])
 ```
 
+```{r model ptk NAO BOM}
+ptk_fit_nbom <- ctree(Y ~ .,
+                   data = db_train_nbom)
+
+# summary(ptk_fit_nbom)
+
+db_test_ptk_nbom <- db_test_nbom
+
+db_test_ptk_nbom$pred <- predict(ptk_fit_nbom, newdata = db_test_ptk_nbom)
+db_test_ptk_nbom$pred.class <- ifelse(db_test_ptk_nbom$pred > 0.5,1,0)
+
+# db_model_nbom <- db_test_ptk_nbom %>% select(c("Y","pred","pred.class"))
+# ^ NÃO ESTÁ SENDO USADO
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_ptk_nbom <- table(as.numeric(db_test_ptk_nbom$pred.class), db_test_ptk_nbom$Y)
+
+acc_ptk_nbom <- sum(ctable_ptk_nbom[1,1], ctable_ptk_nbom[2,2]) / sum(ctable_ptk_nbom)
+
+esp_ptk_nbom <- ctable_ptk_nbom[1,1] / sum(ctable_ptk_nbom[,1])
+
+sen_ptk_nbom <- ctable_ptk_nbom[2,2] / sum(ctable_ptk_nbom[,2])
+```
+
 ```{r model rnf NAO BOM}
 rnf_fit_nbom <- randomForest(as.factor(Y) ~ .,
                             data = db_train_nbom)
@@ -451,27 +495,42 @@ esp_xgb_nbom <- ctable_xgb_nbom[1,1] / sum(ctable_xgb_nbom[,1])
 sen_xgb_nbom <- ctable_xgb_nbom[2,2] / sum(ctable_xgb_nbom[,2])
 ```
 
+```{r model nba NAO BOM}
+nba_fit_nbom <- naiveBayes(Y ~ ., data = db_train_nbom)
+
+db_test_nba_nbom <- db_test_nbom
+
+db_test_nba_nbom$pred <- predict(nba_fit_nbom, newdata = db_test_nba_nbom)
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_nba_nbom <- table(db_test_nba_nbom$pred, db_test_nba_nbom$Y)
+
+acc_nba_nbom <- sum(ctable_nba_nbom[1,1], ctable_nba_nbom[2,2]) / sum(ctable_nba_nbom)
+
+esp_nba_nbom <- ctable_nba_nbom[1,1] / sum(ctable_nba_nbom[,1])
+
+sen_nba_nbom <- ctable_nba_nbom[2,2] / sum(ctable_nba_nbom[,2])
+```
+
 ```{r model comparison table}
-model_comp_table <- data.frame(Modelo = c("Logístico", "Random Forest", "Logístico", "Random Forest"),
-                               Tipo = c("Bom", "Bom", "Bom", "Não bom", "Não bom", "Não bom"),
-                               Acurácia = c(acc_log_bom,
-                                            acc_rnf_bom,
-                                            acc_log_nbom,
-                                            acc_rnf_nbom,
-                                            acc_xgb_bom,
-                                            acc_xgb_nbom),
-                               Especificidade = c(esp_log_bom,
-                                                  esp_rnf_bom,
-                                                  esp_log_nbom,
-                                                  esp_rnf_nbom,
-                                                  esp_xgb_bom,
-                                                  esp_xgb_nbom),
-                               Sensibilidade = c(sen_log_bom,
-                                                 sen_rnf_bom,
-                                                 sen_log_nbom,
-                                                 sen_rnf_nbom,
-                                                 sen_xgb_bom,
-                                                 sen_xgb_nbom))
+model_comp_table <- data.frame(Modelo = c("Logístico", "Árvore de regressão",
+                                          "Random Forest", "XGBoost", "Naive Bayes",
+                                          "Logístico", "Árvore de regressão",
+                                          "Random Forest", "XGBoost", "Naive Bayes"),
+                               Tipo = c("Bom", "Bom", "Bom", "Bom", "Bom",
+                                        "Não bom", "Não bom", "Não bom", "Não bom", "Não bom"),
+                               Acurácia = c(acc_log_bom, acc_ptk_bom, acc_rnf_bom,
+                                            acc_xgb_bom, acc_nba_bom, acc_log_nbom,
+                                            acc_ptk_nbom, acc_rnf_nbom, acc_xgb_nbom,
+                                            acc_nba_nbom),
+                               Especificidade = c(esp_log_bom, esp_ptk_bom, esp_rnf_bom,
+                                                  esp_xgb_bom, esp_nba_bom, esp_log_nbom,
+                                                  esp_ptk_nbom, esp_rnf_nbom, esp_xgb_nbom,
+                                                  esp_nba_nbom),
+                               Sensibilidade = c(sen_log_bom, sen_ptk_bom, sen_rnf_bom,
+                                                 sen_xgb_bom, sen_nba_bom, sen_log_nbom,
+                                                 sen_ptk_nbom, sen_rnf_nbom, sen_xgb_nbom,
+                                                 sen_nba_nbom))
 ```
 
 
