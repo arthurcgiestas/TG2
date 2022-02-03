@@ -18,6 +18,7 @@ library(randomForest)
 library(xgboost)
 library(e1071)
 library(partykit)
+library(pROC)
 ```
 
 ```{r data reading}
@@ -78,7 +79,11 @@ wc_db_clean[,2] <- gsub(" dia ", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" dois", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" pois", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" pra ", "", wc_db_clean[,2])
-```
+wc_db_clean[,2] <- gsub(" fiz ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" site ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" estou ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" ser ", "", wc_db_clean[,2])
+wc_db_clean[,2] <- gsub(" comprei ", "", wc_db_clean[,2])```
 
 
 ```{r cv index generation}
@@ -132,43 +137,43 @@ for (i in 1:nrow(db_dummy_bom)) {
   
 # CRIACAO DAS VARIAVEIS DUMMIES
   db_dummy_bom$X1[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "recomendo"), 1, 0)
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "sempre"), 1, 0)
   db_dummy_bom$X2[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "antes"), 1, 0)
-  db_dummy_bom$X3[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "ótimo"), 1, 0)
-  db_dummy_bom$X4[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "chegou"), 1, 0)
-  db_dummy_bom$X5[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "adorei"), 1, 0)
-  db_dummy_bom$X6[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "super"), 1, 0)
-  db_dummy_bom$X7[i] <-
     ifelse(str_detect(db_dummy_bom$comp_comment[i], "qualidade"), 1, 0)
-  db_dummy_bom$X8[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "perfeito"), 1, 0)
-  db_dummy_bom$X9[i] <-
+  db_dummy_bom$X3[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "super"), 1, 0)
+  db_dummy_bom$X4[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "ótimo"), 1, 0)
+  db_dummy_bom$X5[i] <-
     ifelse(str_detect(db_dummy_bom$comp_comment[i], "certo"), 1, 0)
-  db_dummy_bom$X10[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "excelente"), 1, 0)
-  db_dummy_bom$X11[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "recebi"), 1, 0)
-  db_dummy_bom$X12[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "rápido"), 1, 0)
-  db_dummy_bom$X13[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "gostei"), 1, 0)
-  db_dummy_bom$X14[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "entrega"), 1, 0)
-  db_dummy_bom$X15[i] <-
+  db_dummy_bom$X6[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "muito"), 1, 0)
+  db_dummy_bom$X7[i] <-
     ifelse(str_detect(db_dummy_bom$comp_comment[i], "bom"), 1, 0)
+  db_dummy_bom$X8[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "entrega"), 1, 0)
+  db_dummy_bom$X9[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "gostei"), 1, 0)
+  db_dummy_bom$X10[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "chegou"), 1, 0)
+  db_dummy_bom$X11[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "antes"), 1, 0)
+  db_dummy_bom$X12[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "boa"), 1, 0)
+  db_dummy_bom$X13[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "perfeito"), 1, 0)
+  db_dummy_bom$X14[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "adorei"), 1, 0)
+  db_dummy_bom$X15[i] <-
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "recomendo"), 1, 0)
   db_dummy_bom$X16[i] <-
     ifelse(str_detect(db_dummy_bom$comp_comment[i], "bem"), 1, 0)
   db_dummy_bom$X17[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "boa"), 1, 0)
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "rápido"), 1, 0)
   db_dummy_bom$X18[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "muito"), 1, 0)
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "recebi"), 1, 0)
   db_dummy_bom$X19[i] <-
-    ifelse(str_detect(db_dummy_bom$comp_comment[i], "sempre"), 1, 0)
+    ifelse(str_detect(db_dummy_bom$comp_comment[i], "excelente"), 1, 0)
   db_dummy_bom$X20[i] <-
     ifelse(str_detect(db_dummy_bom$comp_comment[i], "parabéns"), 1, 0)
 
@@ -193,9 +198,6 @@ log_pred_bom <- predict(log_fit_bom, newdata = db_test_log_bom, type = "response
 db_test_log_bom$pred <- log_pred_bom
 db_test_log_bom$pred.class <- ifelse(log_pred_bom > 0.5,1,0)
 
-# db_model_bom <- db_test_log_bom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
-
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_log_bom <- table(as.numeric(db_test_log_bom$pred.class), db_test_log_bom$Y)
 
@@ -204,6 +206,18 @@ acc_log_bom <- sum(ctable_log_bom[1,1], ctable_log_bom[2,2]) / sum(ctable_log_bo
 esp_log_bom <- ctable_log_bom[1,1] / sum(ctable_log_bom[,1])
 
 sen_log_bom <- ctable_log_bom[2,2] / sum(ctable_log_bom[,2])
+
+roc_log_bom <- roc(db_test_log_bom$Y, db_test_log_bom$pred)
+print(roc_log_bom)
+
+plot(roc_log_bom)
+plot(smooth(roc_log_bom), add=T, col="blue")
+
+smooth(roc_log_bom)$auc
+as.numeric(smooth(roc_log_bom)$auc)
+
+with(roc_log_bom, plot(sensitivities ~ thresholds, type="l", col="blue"))
+with(roc_log_bom, lines(specificities ~ thresholds, col="red", lty=2))
 ```
 
 ```{r model ptk BOM}
@@ -216,9 +230,6 @@ db_test_ptk_bom <- db_test_bom
 
 db_test_ptk_bom$pred <- predict(ptk_fit_bom, newdata = db_test_ptk_bom)
 db_test_ptk_bom$pred.class <- ifelse(db_test_ptk_bom$pred > 0.5,1,0)
-
-# db_model_bom <- db_test_ptk_bom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
 
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_ptk_bom <- table(as.numeric(db_test_ptk_bom$pred.class), db_test_ptk_bom$Y)
@@ -239,9 +250,6 @@ rnf_fit_bom <- randomForest(as.factor(Y) ~ .,
 db_test_rnf_bom <- db_test_bom
 
 db_test_rnf_bom$pred <- predict(rnf_fit_bom, newdata = db_test_rnf_bom, type = "response")
-
-# db_model_bom <- db_test_rnf_bom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
 
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_rnf_bom <- table(as.numeric(db_test_rnf_bom$pred), db_test_rnf_bom$Y)
@@ -268,9 +276,6 @@ xgb_fit_bom <- xgboost(data  = db_train_xgb_bom_X,
 db_test_xgb_bom_X$pred <- predict(xgb_fit_bom, newdata = as.matrix(db_test_xgb_bom_X))
 
 db_test_xgb_bom_X$pred.class <- ifelse(db_test_xgb_bom_X$pred > 0.5, 1, 0)
-
-# db_model_bom <- db_test_xgb_bom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
 
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_xgb_bom <- table(as.numeric(db_test_xgb_bom_X$pred.class), db_test_bom[,1])
@@ -346,45 +351,45 @@ for (i in 1:nrow(db_dummy_nbom)) {
   
 # CRIACAO DAS VARIAVEIS DUMMIES
   db_dummy_nbom$X1[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "recomendo"), 1, 0)
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "contato"), 1, 0)
   db_dummy_nbom$X2[i] <-
     ifelse(str_detect(db_dummy_nbom$comp_comment[i], "porém"), 1, 0)
   db_dummy_nbom$X3[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "aguardando"), 1, 0)
-  db_dummy_nbom$X4[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "quero"), 1, 0)
-  db_dummy_nbom$X5[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "apenas"), 1, 0)
-  db_dummy_nbom$X6[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "estou"), 1, 0)
-  db_dummy_nbom$X7[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "comprei"), 1, 0)
-  db_dummy_nbom$X8[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "bom"), 1, 0)
-  db_dummy_nbom$X9[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "ainda"), 1, 0)
-  db_dummy_nbom$X10[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "dias"), 1, 0)
-  db_dummy_nbom$X11[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "não"), 1, 0)
-  db_dummy_nbom$X12[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "outro"), 1, 0)
-  db_dummy_nbom$X13[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "contato"), 1, 0)
-  db_dummy_nbom$X14[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "pedido"), 1, 0)
-  db_dummy_nbom$X15[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "site"), 1, 0)
-  db_dummy_nbom$X16[i] <-
     ifelse(str_detect(db_dummy_nbom$comp_comment[i], "nada"), 1, 0)
-  db_dummy_nbom$X17[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "recebi"), 1, 0)
-  db_dummy_nbom$X18[i] <-
+  db_dummy_nbom$X4[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "recomendo"), 1, 0)
+  db_dummy_nbom$X5[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "comprei"), 1, 0)
+  db_dummy_nbom$X6[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "gostei"), 1, 0)
+  db_dummy_nbom$X7[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "não"), 1, 0)
+  db_dummy_nbom$X8[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "outro"), 1, 0)
+  db_dummy_nbom$X9[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "quero"), 1, 0)
+  db_dummy_nbom$X10[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "pedido"), 1, 0)
+  db_dummy_nbom$X11[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "bom"), 1, 0)
+  db_dummy_nbom$X12[i] <-
     ifelse(str_detect(db_dummy_nbom$comp_comment[i], "qualidade"), 1, 0)
+  db_dummy_nbom$X13[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "recebi"), 1, 0)
+  db_dummy_nbom$X14[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "agora"), 1, 0)
+  db_dummy_nbom$X15[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "estou"), 1, 0)
+  db_dummy_nbom$X16[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "ainda"), 1, 0)
+  db_dummy_nbom$X17[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "dias"), 1, 0)
+  db_dummy_nbom$X18[i] <-
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "apenas"), 1, 0)
   db_dummy_nbom$X19[i] <-
     ifelse(str_detect(db_dummy_nbom$comp_comment[i], "correios"), 1, 0)
   db_dummy_nbom$X20[i] <-
-    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "agora"), 1, 0)
+    ifelse(str_detect(db_dummy_nbom$comp_comment[i], "aguardando"), 1, 0)
 
 }
 
@@ -405,9 +410,6 @@ log_pred_nbom <- predict(log_fit_nbom, newdata = db_test_log_nbom, type = "respo
 db_test_log_nbom$pred <- log_pred_nbom
 db_test_log_nbom$pred.class <- ifelse(log_pred_nbom > 0.5,1,0)
 
-# db_model_nbom <- db_test_log_nbom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
-
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_log_nbom <- table(as.numeric(db_test_log_nbom$pred.class), db_test_log_nbom$Y)
 
@@ -416,6 +418,18 @@ acc_log_nbom <- sum(ctable_log_nbom[1,1], ctable_log_nbom[2,2]) / sum(ctable_log
 esp_log_nbom <- ctable_log_nbom[1,1] / sum(ctable_log_nbom[,1])
 
 sen_log_nbom <- ctable_log_nbom[2,2] / sum(ctable_log_nbom[,2])
+
+roc_log_nbom <- roc(db_test_log_nbom$Y, db_test_log_nbom$pred)
+print(roc_log_nbom)
+
+plot(roc_log_nbom)
+plot(smooth(roc_log_nbom), add=T, col="blue")
+
+smooth(roc_log_nbom)$auc
+as.numeric(smooth(roc_log_nbom)$auc)
+
+with(roc_log_nbom, plot(sensitivities ~ thresholds, type="l", col="blue"))
+with(roc_log_nbom, lines(specificities ~ thresholds, col="red", lty=2))
 ```
 
 ```{r model ptk NAO BOM}
@@ -428,9 +442,6 @@ db_test_ptk_nbom <- db_test_nbom
 
 db_test_ptk_nbom$pred <- predict(ptk_fit_nbom, newdata = db_test_ptk_nbom)
 db_test_ptk_nbom$pred.class <- ifelse(db_test_ptk_nbom$pred > 0.5,1,0)
-
-# db_model_nbom <- db_test_ptk_nbom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
 
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_ptk_nbom <- table(as.numeric(db_test_ptk_nbom$pred.class), db_test_ptk_nbom$Y)
@@ -451,9 +462,6 @@ rnf_fit_nbom <- randomForest(as.factor(Y) ~ .,
 db_test_rnf_nbom <- db_test_nbom
 
 db_test_rnf_nbom$pred <- predict(rnf_fit_nbom, newdata = db_test_rnf_nbom, type = "response")
-
-# db_model_nbom <- db_test_rnf_nbom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
 
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_rnf_nbom <- table(as.numeric(db_test_rnf_nbom$pred), db_test_rnf_nbom$Y)
@@ -480,9 +488,6 @@ xgb_fit_nbom <- xgboost(data  = db_train_xgb_nbom_X,
 db_test_xgb_nbom_X$pred <- predict(xgb_fit_nbom, newdata = as.matrix(db_test_xgb_nbom_X))
 
 db_test_xgb_nbom_X$pred.class <- ifelse(db_test_xgb_nbom_X$pred > 0.5, 1, 0)
-
-# db_model_nbom <- db_test_xgb_nbom %>% select(c("Y","pred","pred.class"))
-# ^ NÃO ESTÁ SENDO USADO
 
 # MATRIZ DE CONFUSAO E METRICAS
 ctable_xgb_nbom <- table(as.numeric(db_test_xgb_nbom_X$pred.class), db_test_nbom[,1])
@@ -559,9 +564,6 @@ word_evaluation <- wc_db_clean %>%
   na.omit() %>%
   filter(var_pt < 2 & var_pt != 0) #revisar essa decisão de var <= 2 (foi arbitrário)
 
-# pode-se criar um modelo no final que definiria a nota com base nas palavras
-# nota entre 1 e 5 ou entre faixas (de 1 a 2, ou <2,5, >2,5, bom ou ruim) - transformar em classificação
-# validaçao cruzada - não podemos fazer as nuvens/kn-n no mesmo conjunto que vamos rodar os testes
 # quantas palavras são necessárias para definir uma nota? 
  
 ```
