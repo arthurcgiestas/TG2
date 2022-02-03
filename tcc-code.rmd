@@ -1,0 +1,290 @@
+---
+title: "Aplicação Prática de Modelos de Machine Learning no Contexto do e-commerce"
+author: "Caio Henrique - 2019026028 & Arthur Giestas - 2019026028"
+output: word_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r bibliotecas, warning=FALSE}
+rm(list = ls()) #limpando a memória
+# carregando bibliotecas
+library(tidyverse)
+library(stringr)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(wordcloud2)
+library(ggplot2)
+```
+
+```{r data hist, warning=FALSE}
+order_reviews_full <- read.csv("olist_order_reviews_dataset.csv", encoding="UTF-8")
+#DF utilizado para criar o histograma de distribuição de notas
+df_histnotas <- order_reviews_full %>%
+  filter(review_year == 2017) %>%
+  select("review_score") 
+```
+
+```{r hist notas, warning=FALSE}
+score <- df_histnotas$review_score
+h <- hist(score, 
+          breaks=c(0,1,2,3,4,5),
+          main = "Distribuição de Notas",
+          xlab = "",
+          xaxt='n',
+          col = "cornflowerblue",
+          border = "black")
+text(h$mids,h$counts,labels=h$counts, adj=c(0.5, -0.5))
+table(df_histnotas$review_score)/nrow(df_histnotas)*100
+#como a proporção de notas 5 é cerca de 2,5x maior que o número de noas 1, vamos utilizar 24 palavras provenientes de classificações 5 e 4 palavras provenientes de classificações 1 para a criação das variaveis dummies
+#obs.: uma palavra pode estar presente em classificações 1 e 5
+```
+
+```{r data sentiment, warning=FALSE}
+# DF utilizado para realizar a análise das palabras (boas/ruins) presentes na base para as notas 5 e 1 por possuírem maior carga de sentimento 
+df_bom <- order_reviews_full %>%
+  filter(review_year == 2017 & review_score == 5) %>%
+  select("review_comment_message") 
+df_ruim <- order_reviews_full %>%
+  filter(review_year == 2017 & review_score == 1) %>%
+  select("review_comment_message")
+```
+
+```{r build corpus, warning=FALSE}
+# corpus é uma estrutura que funciona como uma coleção de documentos, nesse caso, cada comentário é um documento
+corpus_bom = VCorpus(VectorSource(df_bom$review_comment_message))
+as.character(corpus_bom[[1]])
+corpus_ruim = VCorpus(VectorSource(df_ruim$review_comment_message))
+as.character(corpus_ruim[[1]])
+```
+
+```{r data sentiment wrangling, warning=FALSE}
+# passando o texto para minusculo e removendo numeros, pontuacao, stopwords etc
+corpus_bom = tm_map(corpus_bom, content_transformer(tolower))
+as.character(corpus_bom[[1]])
+corpus_ruim = tm_map(corpus_ruim, content_transformer(tolower))
+as.character(corpus_ruim[[1]])
+corpus_bom = tm_map(corpus_bom, removeNumbers)
+as.character(corpus_bom[[1]])
+corpus_ruim = tm_map(corpus_ruim, removeNumbers)
+as.character(corpus_ruim[[1]])
+corpus_bom = tm_map(corpus_bom, removePunctuation)
+as.character(corpus_bom[[1]])
+corpus_ruim = tm_map(corpus_ruim, removePunctuation)
+as.character(corpus_ruim[[1]])
+corpus_bom = tm_map(corpus_bom, stemDocument)
+as.character(corpus_bom[[1]])
+corpus_ruim = tm_map(corpus_ruim, stemDocument)
+as.character(corpus_ruim[[1]])
+corpus_bom = tm_map(corpus_bom, stripWhitespace)
+as.character(corpus_bom[[1]])
+corpus_ruim = tm_map(corpus_ruim, stripWhitespace)
+as.character(corpus_ruim[[1]])
+corpus_bom = tm_map(corpus_bom, removeWords, stopwords("portuguese"))
+as.character(corpus_bom[[1]])
+corpus_ruim = tm_map(corpus_ruim, removeWords, stopwords("portuguese"))
+as.character(corpus_ruim[[1]])
+```
+
+```{r term document matix TDM, warning=FALSE, include=FALSE}
+# Term Document Matrix
+tdm_bom <- TermDocumentMatrix(corpus_bom)
+tdm_bom <- as.matrix(tdm_bom)
+tdm_ruim <- TermDocumentMatrix(corpus_ruim)
+tdm_ruim <- as.matrix(tdm_ruim)
+```
+
+```{r bar_bom plot}
+bar_bom <- rowSums(tdm_bom)
+# bar
+bar_bom <- subset(bar_bom, bar_bom >= 333)
+barplot(bar_bom,
+        las = 2,
+        col = rainbow(50)
+)
+# IMPORTANTE!!!!! Lembrar de ajustar palavras: boa/bom, entrega/entregue, otima/ótima/ótimo
+```
+
+```{r bar_ruim plot}
+bar_ruim <- rowSums(tdm_ruim)
+# bar
+bar_ruim <- subset(bar_ruim, bar_ruim >= 440)
+barplot(bar_ruim,
+        las = 2,
+        col = rainbow(50)
+)
+# IMPORTANTE!!!!! Lembrar de ajustar palavras: boa/bom, entrega/entregue, otima/ótima/ótimo
+```
+
+```{r data wrangling, warning=FALSE}
+# selecao do dataframe necessario 
+df <- order_reviews_full %>%
+  filter(review_year == 2017 & review_comment_message != "") %>%
+  
+  select("review_score", "review_comment_message") %>%
+  
+  mutate(index = row_number()) 
+df$index <- seq.int(nrow(df))
+str(df$review_comment_message)
+# substituicao de genero e plural
+df$review_comment_message <- gsub("ótimo", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("otima", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("ótima", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("perfeita", "perfeito", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rápido", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rápida", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rapida", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("bem", "bom", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("boa", "bom", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("produtos", "produto", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("não", "nao", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("dias", "dia", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("lojas", "loja", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("péssimo", "pessimo", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("péssima", "pessimo", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("pessima", "pessimo", df$review_comment_message, ignore.case = TRUE)
+# passando tudo para minusculo
+df$review_comment_message <- gsub("recomendo", "recomendo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("antes", "antes", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("ótimo", "otimo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("chegou", "chegou", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("adorei", "adorei", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("super", "super", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("qualidade", "qualidade", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("perfeito", "perfeito", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("prazo", "prazo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("excelente", "excelente", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("recebi", "recebi", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("rapido", "rapido", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("gostei", "gostei", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("entrega", "entrega", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("entregue", "entregue", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("bom", "bom", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("muito", "muito", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("sempre", "sempre", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("parabéns", "parabéns", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("dentro", "dentro", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("tudo", "tudo", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("veio", "veio", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("produto", "produto", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("comprei", "comprei", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("compra", "compra", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("ainda", "ainda", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("nao", "nao", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("agora", "agora", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("dia", "dia", df$review_comment_message, ignore.case = TRUE)
+df$review_comment_message <- gsub("loja", "loja", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("site", "site", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("apenas", "apenas", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("contato", "contato", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("nada", "nada", df$review_comment_message, ignore.case = TRUE)
+#df$review_comment_message <- gsub("pessimo", "pessimo", df$review_comment_message, ignore.case = TRUE)
+```
+
+```{r data model, warning=FALSE}
+for (i in 1:nrow(df)) {
+  
+  #CRIACAO DA VARIAVEL RESPOSTA (Y)
+  df$Y5[i] <- if_else(df$review_score[i] == 5, 1, 0)
+  df$Y4[i] <- if_else(df$review_score[i] == 4, 1, 0)
+  df$Y3[i] <- if_else(df$review_score[i] == 3, 0, 0)
+  df$Y2[i] <- if_else(df$review_score[i] == 2, 0, 0)
+  df$Y1[i] <- if_else(df$review_score[i] == 1, 0, 0)
+  
+  df$Y[i] <- df$Y5[i] + df$Y4[i] + df$Y3[i] + df$Y2[i] + df$Y1[i]
+  
+  #CRIACAO DAS VARIAVEIS DUMMIES
+  df$X_recomendo[i] <- ifelse(str_detect(df$review_comment_message[i], "recomendo"), 1, 0)
+  df$X_antes[i]     <- ifelse(str_detect(df$review_comment_message[i], "antes"), 1, 0)
+  df$X_otimo[i]     <- ifelse(str_detect(df$review_comment_message[i], "ótimo"), 1, 0)
+  df$X_chegou[i]    <- ifelse(str_detect(df$review_comment_message[i], "chegou"), 1, 0)
+  #df$X_adorei[i]    <- ifelse(str_detect(df$review_comment_message[i], "adorei"), 1, 0)
+  df$X_super[i]     <- ifelse(str_detect(df$review_comment_message[i], "super"), 1, 0)
+  df$X_qualidade[i] <- ifelse(str_detect(df$review_comment_message[i], "qualidade"), 1, 0)
+  df$X_perfeito[i]  <- ifelse(str_detect(df$review_comment_message[i], "perfeito"), 1, 0)
+  df$X_prazo[i]     <- ifelse(str_detect(df$review_comment_message[i], "prazo"), 1, 0)
+  df$X_excelente[i] <- ifelse(str_detect(df$review_comment_message[i], "excelente"), 1, 0)
+  df$X_recebi[i]    <- ifelse(str_detect(df$review_comment_message[i], "recebi"), 1, 0)
+  df$X_rapido[i]    <- ifelse(str_detect(df$review_comment_message[i], "rápido"), 1, 0)
+  df$X_gostei[i]    <- ifelse(str_detect(df$review_comment_message[i], "gostei"), 1, 0)
+  df$X_entrega[i]   <- ifelse(str_detect(df$review_comment_message[i], "entrega"), 1, 0)
+  df$X_entrega[i]   <- ifelse(str_detect(df$review_comment_message[i], "entregue"), 1, 0)
+  df$X_bom[i]       <- ifelse(str_detect(df$review_comment_message[i], "bom"), 1, 0)
+  #df$X_muito[i]     <- ifelse(str_detect(df$review_comment_message[i], "muito"), 1, 0)
+  df$X_sempre[i]    <- ifelse(str_detect(df$review_comment_message[i], "sempre"), 1, 0)
+  df$X_parabens[i]  <- ifelse(str_detect(df$review_comment_message[i], "parabéns"),1, 0)
+  df$X_dentro[i]    <- ifelse(str_detect(df$review_comment_message[i], "dentro"), 1, 0)
+  df$X_tudo[i]      <- ifelse(str_detect(df$review_comment_message[i], "tudo"), 1, 0)
+  df$X_veio[i]      <- ifelse(str_detect(df$review_comment_message[i], "veio"), 1, 0)
+  df$X_produto[i]   <- ifelse(str_detect(df$review_comment_message[i], "produto"), 1, 0)
+  df$X_comprei[i]   <- ifelse(str_detect(df$review_comment_message[i], "comprei"), 1, 0)
+  df$X_compra[i]    <- ifelse(str_detect(df$review_comment_message[i], "compra"), 1, 0)
+  df$X_ainda[i]     <- ifelse(str_detect(df$review_comment_message[i], "ainda"), 1, 0)
+  df$X_nao[i]       <- ifelse(str_detect(df$review_comment_message[i], "nao"), 1, 0)
+  df$X_agora[i]     <- ifelse(str_detect(df$review_comment_message[i], "agora"), 1, 0)
+  df$X_dia[i]       <- ifelse(str_detect(df$review_comment_message[i], "dia"), 1, 0)
+  df$X_loja[i]      <- ifelse(str_detect(df$review_comment_message[i], "loja"), 1, 0)
+  #df$X_site[i]      <- ifelse(str_detect(df$review_comment_message[i], "site"), 1, 0)
+  #df$X_apenas[i]    <- ifelse(str_detect(df$review_comment_message[i], "apenas"), 1, 0)
+  #df$X_contato[i]   <- ifelse(str_detect(df$review_comment_message[i], "contato"), 1, 0)
+  #df$X_nada[i]      <- ifelse(str_detect(df$review_comment_message[i], "nada"), 1, 0)
+  #df$X_pessimo[i]   <- ifelse(str_detect(df$review_comment_message[i], "pessimo"), 1, 0)
+  
+}
+```
+
+```{r df validacao cruzada, warning=FALSE}
+df_ajuste <- df %>% select(-c("review_score","review_comment_message","index","Y5","Y4","Y3","Y2","Y1"))
+smp_size <- floor(0.7 * nrow(df_ajuste))
+set.seed(123)
+train_ind <- sample.int(nrow(df_ajuste), size = smp_size)
+df.train <- df_ajuste[ train_ind, ]
+log.test   <- df_ajuste[-train_ind, ]
+nb.test    <- df_ajuste[-train_ind, ]
+tree.test  <- df_ajuste[-train_ind, ]
+```
+
+```{r ajuste logistico, warning=FALSE}
+log.fit <- glm(Y ~ ., data = df.train, 
+               family = "binomial")
+log.pred <- predict(log.fit, newdata = log.test, type = "response")
+log.test$pred       <- log.pred
+log.test$pred.class <- ifelse(log.pred > 0.5,1,0)
+log.class           <- log.test %>% select(c("Y","pred.class"))
+```
+
+```{r ajuste naive, warning=FALSE}
+library(e1071)
+nb.fit <- naiveBayes(Y ~ ., data = df.train)
+nb.pred <- predict(nb.fit, newdata = nb.test)
+nb.test$pred.class <- nb.pred
+nb.class           <- nb.test %>% select(c("Y","pred.class"))
+```
+
+```{r ajuste tree, warning=FALSE}
+library(partykit)
+tree.fit <- ctree(Y ~ ., data = df.train)
+tree.pred <- predict(tree.fit, newdata = tree.test)
+tree.test$pred       <- tree.pred
+tree.test$pred.class <- ifelse(tree.pred > 0.5,1,0)
+tree.class           <- tree.test %>% select(c("Y","pred.class"))
+```
+
+```{r matriz conf modelos, warning=FALSE}
+library(partykit)
+# matriz de confusao logistico
+table(log.test$Y, log.test$pred.class)
+#matriz de confusao naive
+table(nb.test$Y, nb.test$pred.class)
+#matriz de confusao arvore
+table(tree.test$Y, tree.test$pred.class)
+```
+
+Eficiência dos Modelos:
+  
+1) Regressão Logística      -> 83.02%
+2) Naive Bayes              -> 72.67%
+3) Árvores de Classificação -> 82.18%
