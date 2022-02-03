@@ -14,7 +14,6 @@ library(data.table)
 library(wordcloud)
 library(tm)
 library(SnowballC)
-#library(Rcpp)
 library(randomForest)
 library(xgboost)
 library(e1071)
@@ -532,6 +531,7 @@ model_comp_table <- data.frame(Modelo = c("Logístico", "Árvore de regressão",
                                                  sen_ptk_nbom, sen_rnf_nbom, sen_xgb_nbom,
                                                  sen_nba_nbom))
 ```
+
 
 
 ```{r estimativa de pontuacao por palavra}
