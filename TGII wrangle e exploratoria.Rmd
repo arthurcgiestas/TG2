@@ -83,7 +83,8 @@ wc_db_clean[,2] <- gsub(" fiz ", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" site ", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" estou ", "", wc_db_clean[,2])
 wc_db_clean[,2] <- gsub(" ser ", "", wc_db_clean[,2])
-wc_db_clean[,2] <- gsub(" comprei ", "", wc_db_clean[,2])```
+wc_db_clean[,2] <- gsub(" comprei ", "", wc_db_clean[,2])
+```
 
 
 ```{r cv index generation}

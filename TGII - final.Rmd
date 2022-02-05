@@ -1,0 +1,368 @@
+---
+title: "TG2 - wrangling e análise exp"
+author: "Arthur Giestas"
+date: "23/11/2021"
+output: word_document
+---
+
+```{r bibliotecas, message=FALSE, warning=FALSE}
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(tidytext)
+library(wordcloud)
+library(tm)
+library(SnowballC)
+library(randomForest)
+library(xgboost)
+library(e1071)
+library(partykit)
+library(pROC)
+library(ggplot2)
+library(scales)
+```
+
+```{r data reading}
+order_reviews_full <- read.csv("olist_order_reviews_dataset.csv", encoding = "UTF-8") %>%
+  filter(grepl("2017", review_creation_date))
+```
+
+```{r composite comment}
+# remove linhas sem comentários E sem título
+# remove colunas desnecessárias
+# acrescenta coluna com título concatenado ao texto do comentário
+order_reviews <- order_reviews_full[!((order_reviews_full$review_comment_message == "") &
+                                        (order_reviews_full$review_comment_title == "")),] %>%
+  subset(data = order_reviews, select = c(-order_id,
+                                          -review_creation_date,
+                                          -review_answer_timestamp,
+                                          -review_id)) %>%
+  mutate(comp_comment = str_c(review_comment_title, " ", review_comment_message))
+```
+
+```{r cleaning}
+wc_db_clean <- order_reviews[,c(1, 4)]
+
+wc_db_clean[,2] <- str_replace_all(wc_db_clean[,2], "[[:punct:]]", " ")
+
+wc_db_clean[,2] <- gsub('[0-9]+', '', wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub(" não ", " nao ", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("exelente", "excelente", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("ótima", "otimo", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("ótimo", "otimo", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("rápida", "rapido", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("rápido", "rapido", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("parabéns", "parabens", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("boa", "bom", wc_db_clean[,2], ignore.case = T)
+wc_db_clean[,2] <- gsub("entregue", "entrega", wc_db_clean[,2], ignore.case = T)
+```
+
+
+```{r cv index generation}
+index <- sample(1:nrow(wc_db_clean),
+       0.7*nrow(wc_db_clean))
+```
+
+
+```{r wordcloud BOM}
+db_wc_bom <- wc_db_clean[index,] %>%
+  filter(review_score > 3)
+
+corpus_wc_bom <- Corpus(VectorSource(db_wc_bom[,2])) %>%
+  tm_map(removeWords, stopwords("portuguese")) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(content_transformer(tolower))
+
+tdm <- TermDocumentMatrix(corpus_wc_bom)
+m <- as.matrix(tdm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=24, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+```{r wordcloud NAO BOM}
+db_wc_nbom <- wc_db_clean[index,] %>%
+  filter(review_score <= 3)
+
+corpus_wc_nbom <- Corpus(VectorSource(db_wc_nbom[,2])) %>%
+  tm_map(removeWords, stopwords("portuguese")) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(content_transformer(tolower))
+
+tdm <- TermDocumentMatrix(corpus_wc_nbom)
+m <- as.matrix(tdm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=4, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+```
+
+```{r dummy variables}
+db_dummy <- wc_db_clean
+
+str(db_dummy$review_comment_message)
+
+
+for (i in 1:nrow(db_dummy)) {
+  
+# CRIACAO DA VARIAVEL RESPOSTA (Y)
+  db_dummy$Y5[i] <- if_else(db_dummy$review_score[i] == 5, 1, 0)
+  db_dummy$Y4[i] <- if_else(db_dummy$review_score[i] == 4, 1, 0)
+  db_dummy$Y3[i] <- if_else(db_dummy$review_score[i] == 3, 0, 0)
+  db_dummy$Y2[i] <- if_else(db_dummy$review_score[i] == 2, 0, 0)
+  db_dummy$Y1[i] <- if_else(db_dummy$review_score[i] == 1, 0, 0)
+  
+  db_dummy$Y[i] <- 
+    db_dummy$Y5[i] +
+    db_dummy$Y4[i] +
+    db_dummy$Y3[i] +
+    db_dummy$Y2[i] + 
+    db_dummy$Y1[i]
+  
+# CRIACAO DAS VARIAVEIS DUMMIES
+  db_dummy$X1[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "veio"), 1, 0)
+  db_dummy$X2[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "rapido"), 1, 0)
+  db_dummy$X3[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "otimo"), 1, 0)
+  db_dummy$X4[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "bom"), 1, 0)
+  db_dummy$X5[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "gostei"), 1, 0)
+  db_dummy$X6[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "qualidade"), 1, 0)
+  db_dummy$X7[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "excelente"), 1, 0)
+  db_dummy$X8[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "chegou"), 1, 0)
+  db_dummy$X9[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "antes"), 1, 0)
+  db_dummy$X10[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "recebi"), 1, 0)
+  db_dummy$X11[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "sempre"), 1, 0)
+  db_dummy$X12[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "produto"), 1, 0)
+  db_dummy$X13[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "dentro"), 1, 0)
+  db_dummy$X14[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "entrega"), 1, 0)
+  db_dummy$X15[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "bem"), 1, 0)
+  db_dummy$X16[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "parabens"), 1, 0)
+  db_dummy$X17[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "compra"), 1, 0)
+  db_dummy$X18[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "loja"), 1, 0)
+  db_dummy$X19[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "tudo"), 1, 0)
+  db_dummy$X20[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "muito"), 1, 0)
+  db_dummy$X21[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "nao"), 1, 0)
+  db_dummy$X22[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "super"), 1, 0)
+  db_dummy$X23[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "bem"), 1, 0)
+  db_dummy$X24[i] <-
+    ifelse(str_detect(db_dummy$comp_comment[i], "qualidade"), 1, 0)
+
+}
+
+db_train <- db_dummy[index, 8:32]
+db_test <- db_dummy[-index, 8:32]
+```
+
+
+```{r model log BOM}
+log_fit <- glm(Y ~ .,
+                   data = db_train,
+                   family = "binomial")
+
+db_test_log <- db_test
+
+log_pred <- predict(log_fit, newdata = db_test_log, type = "response")
+db_test_log$pred <- log_pred
+db_test_log$pred.class <- ifelse(log_pred > 0.5,1,0)
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_log <- table(as.numeric(db_test_log$pred.class), db_test_log$Y)
+
+acc_log <- sum(ctable_log[1,1], ctable_log[2,2]) / sum(ctable_log)
+
+esp_log <- ctable_log[1,1] / sum(ctable_log[,1])
+
+sen_log <- ctable_log[2,2] / sum(ctable_log[,2])
+
+roc_log <- roc(db_test_log$Y, db_test_log$pred)
+print(roc_log)
+
+plot(roc_log)
+plot(smooth(roc_log), add=T, col="blue")
+
+smooth(roc_log)$auc
+as.numeric(smooth(roc_log)$auc)
+
+with(roc_log, plot(sensitivities ~ thresholds, type="l", col="blue"))
+with(roc_log, lines(specificities ~ thresholds, col="red", lty=2))
+```
+
+```{r model ptk BOM}
+ptk_fit <- ctree(Y ~ .,
+                   data = db_train)
+
+db_test_ptk <- db_test
+
+db_test_ptk$pred <- predict(ptk_fit, newdata = db_test_ptk)
+db_test_ptk$pred.class <- ifelse(db_test_ptk$pred > 0.5,1,0)
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_ptk <- table(as.numeric(db_test_ptk$pred.class), db_test_ptk$Y)
+
+acc_ptk <- sum(ctable_ptk[1,1], ctable_ptk[2,2]) / sum(ctable_ptk)
+
+esp_ptk <- ctable_ptk[1,1] / sum(ctable_ptk[,1])
+
+sen_ptk <- ctable_ptk[2,2] / sum(ctable_ptk[,2])
+
+roc_ptk <- roc(db_test_ptk$Y, db_test_ptk$pred)
+print(roc_ptk)
+
+plot(roc_ptk)
+plot(smooth(roc_ptk), add=T, col="blue")
+
+smooth(roc_ptk)$auc
+as.numeric(smooth(roc_ptk)$auc)
+
+with(roc_ptk, plot(sensitivities ~ thresholds, type="l", col="blue"))
+with(roc_ptk, lines(specificities ~ thresholds, col="red", lty=2))
+```
+
+```{r model rnf BOM}
+rnf_fit <- randomForest(as.factor(Y) ~ .,
+                            data = db_train)
+
+db_test_rnf <- db_test
+
+db_test_rnf$pred <- predict(rnf_fit, newdata = db_test_rnf, type = "response")
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_rnf <- table(as.numeric(db_test_rnf$pred), db_test_rnf$Y)
+
+acc_rnf <- sum(ctable_rnf[1,1], ctable_rnf[2,2]) / sum(ctable_rnf)
+
+esp_rnf <- ctable_rnf[1,1] / sum(ctable_rnf[,1])
+
+sen_rnf <- ctable_rnf[2,2] / sum(ctable_rnf[,2])
+```
+
+```{r model xgb BOM}
+db_train_xgb_X <- as.matrix(db_train[,2:21])
+db_train_xgb_Y <- db_train[,1]
+db_test_xgb_X <- db_test[,2:21]
+
+xgb_fit <- xgboost(data  = db_train_xgb_X,
+                       label = db_train_xgb_Y,
+                       nrounds = 10,
+                       objective ="binary:logistic")
+
+db_test_xgb_X$pred <- predict(xgb_fit, newdata = as.matrix(db_test_xgb_X))
+
+db_test_xgb_X$pred.class <- ifelse(db_test_xgb_X$pred > 0.5, 1, 0)
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_xgb <- table(as.numeric(db_test_xgb_X$pred.class), db_test[,1])
+
+acc_xgb <- sum(ctable_xgb[1,1], ctable_xgb[2,2]) / sum(ctable_xgb)
+
+esp_xgb <- ctable_xgb[1,1] / sum(ctable_xgb[,1])
+
+sen_xgb <- ctable_xgb[2,2] / sum(ctable_xgb[,2])
+
+roc_xgb <- roc(db_test[,1], db_test_xgb_X$pred)
+print(roc_xgb)
+
+plot(roc_xgb)
+plot(smooth(roc_xgb), add=T, col="blue")
+
+smooth(roc_xgb)$auc
+as.numeric(smooth(roc_xgb)$auc)
+
+with(roc_xgb, plot(sensitivities ~ thresholds, type="l", col="blue"))
+with(roc_xgb, lines(specificities ~ thresholds, col="red", lty=2))
+```
+
+```{r model nba BOM}
+nba_fit <- naiveBayes(Y ~ ., data = db_train)
+
+db_test_nba <- db_test
+
+db_test_nba$pred <- predict(nba_fit, newdata = db_test_nba)
+
+# MATRIZ DE CONFUSAO E METRICAS
+ctable_nba <- table(db_test_nba$pred, db_test_nba$Y)
+
+acc_nba <- sum(ctable_nba[1,1], ctable_nba[2,2]) / sum(ctable_nba)
+
+esp_nba <- ctable_nba[1,1] / sum(ctable_nba[,1])
+
+sen_nba <- ctable_nba[2,2] / sum(ctable_nba[,2])
+```
+
+
+```{r plot rocs}
+ggroc(list(Logístico = roc_log, "Árvore Regressão" = roc_ptk, XGBoost = roc_xgb)) +
+  ggtitle("Curvas ROC", subtitle = paste0('AUC Log = ', round(roc_log$auc, 4), ', AUC Árvore = ', round(roc_ptk$auc, 4), ', AUC XGBoost = ', round(roc_xgb$auc, 4)))
+```
+
+
+```{r model comparison table}
+model_comp_table <- data.frame(Modelo = c("Logístico", "Árvore de regressão",
+                                          "Random Forest", "XGBoost", "Naive Bayes"),
+                               Acurácia = c(acc_log, acc_ptk, acc_rnf,
+                                            acc_xgb, acc_nba),
+                               Especificidade = c(esp_log, esp_ptk, esp_rnf,
+                                                  esp_xgb, esp_nba),
+                               Sensibilidade = c(sen_log, sen_ptk, sen_rnf,
+                                                 sen_xgb, sen_nba))
+```
+
+
+```{r estimativa de pontuacao por palavra}
+# cria função de moda
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+# Tokeniza num dataset de palavras, média, mediana, moda, var e dev pad.
+# O dataset não possui observações com var = NA ou 0 ou <= 2.
+# Ou seja, não possui palavras que apareçam apenas uma vez ou que apareçam
+# tanto em comentários com notas altas como baixas, pois não contribuem
+# para a determinação da nota.
+word_evaluation <- wc_db_clean %>%
+  unnest_tokens(output = "Palavras",
+                input = comp_comment,
+                token = "words") %>%
+  group_by(Palavras) %>%
+  summarise(avg_pt = mean(review_score), #"força" positiva ou negativa da palavra - fazer um diag. de dispersão kn-n, agrupar as palavras
+            median_pt = median(review_score),
+            mode_pt = as.double(getmode(review_score)),
+            var_pt = var(review_score),
+            dev_pt = sd(review_score)) %>%
+  na.omit() %>%
+  filter(var_pt < 2 & var_pt != 0) #revisar essa decisão de var <= 2 (foi arbitrário)
+
+# quantas palavras são necessárias para definir uma nota? 
+ 
+```
+
+
