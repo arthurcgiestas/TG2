@@ -334,35 +334,3 @@ model_comp_table <- data.frame(Modelo = c("Logístico", "Árvore de regressão",
                                Sensibilidade = c(sen_log, sen_ptk, sen_rnf,
                                                  sen_xgb, sen_nba))
 ```
-
-
-```{r estimativa de pontuacao por palavra}
-# cria função de moda
-getmode <- function(v) {
-   uniqv <- unique(v)
-   uniqv[which.max(tabulate(match(v, uniqv)))]
-}
-
-# Tokeniza num dataset de palavras, média, mediana, moda, var e dev pad.
-# O dataset não possui observações com var = NA ou 0 ou <= 2.
-# Ou seja, não possui palavras que apareçam apenas uma vez ou que apareçam
-# tanto em comentários com notas altas como baixas, pois não contribuem
-# para a determinação da nota.
-word_evaluation <- wc_db_clean %>%
-  unnest_tokens(output = "Palavras",
-                input = comp_comment,
-                token = "words") %>%
-  group_by(Palavras) %>%
-  summarise(avg_pt = mean(review_score), #"força" positiva ou negativa da palavra - fazer um diag. de dispersão kn-n, agrupar as palavras
-            median_pt = median(review_score),
-            mode_pt = as.double(getmode(review_score)),
-            var_pt = var(review_score),
-            dev_pt = sd(review_score)) %>%
-  na.omit() %>%
-  filter(var_pt < 2 & var_pt != 0) #revisar essa decisão de var <= 2 (foi arbitrário)
-
-# quantas palavras são necessárias para definir uma nota? 
- 
-```
-
-
